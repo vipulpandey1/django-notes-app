@@ -1,24 +1,38 @@
 name: Push-to-EC2
 
-# Trigger deployment only on push to master branch
+# Trigger deployment only on push to development branch
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch push
+    name: Deploy to EC2 
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout the files
         uses: actions/checkout@v2
-
-      - name: Deploy to Server 1
-        uses: easingthemes/ssh-deploy@main
+        
+      - name: multiple command
+        uses: appleboy/ssh-action@master
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
-          REMOTE_HOST: ${{ secrets.HOST_DNS }}
-          REMOTE_USER: ${{ secrets.USERNAME }}
-          TARGET: ${{ secrets.TARGET_DIR }}
+            BRANCH: ${{ github.ref_name }}
+            BUILD_NUMBER: ${{ github.run_number }}
+ 
+        with:
+          host: ${{ secrets.HOST_DNS }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          envs: BRANCH, BUILD_NUMBER
+          script: |
+            pwd
+            cd django-notes-app/
+            ls
+            sudo docker build -t my-app:$BUILD_NUMBER .
+            sudo docker stop django-notes-app || true
+            sudo docker rm django-notes-app || true
+            sudo docker run -d --name django-notes-app -p 8000:8000 my-app:$BUILD_NUMBER
+            sudo docker system prune -a -f
