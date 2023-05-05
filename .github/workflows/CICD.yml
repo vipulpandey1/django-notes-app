@@ -25,9 +25,6 @@ jobs:
           pip install -r requirements.txt
           pip install django
 
-      - name: Collect static files
-        run: python manage.py collectstatic --noinput
-
       - name: Deploy to S3 bucket
         uses: jakejarvis/s3-sync-action@master
         with:
